@@ -463,6 +463,8 @@ button.bt{font:inherit;font-weight:600;border-radius:7px;padding:12px 18px;curso
     d.disciplinas = estado.disciplinas.map(function(x){ return "### " + limpo(x.nome) + "\n" + limpo(x.texto); }).join("\n\n");
     d.temRefs = estado.temRefs;
     d.referencias = estado.temRefs === "sim" ? limpo(estado.referencias) : "";
+    // sem o apóstrofo, o Google Sheets trata como fórmula e grava #ERROR!; ele não fica salvo na célula
+    Object.keys(d).forEach(function(k){ if (/^[=']/.test(d[k])) d[k] = "'" + d[k]; });
     return d;
   }
   async function enviar(bt){
