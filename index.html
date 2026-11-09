@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Relato Autoetnográfico</title>
+<style>
+:root{
+  --marinho:#2f2a6b; --laranja:#f59a1c; --verde:#1f7a45; --erro:#b3261e;
+  --fundo:#f5f4f0; --cartao:#fff; --texto:#22222a; --suave:#62626e; --linha:#d9d8d2;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fundo);color:var(--texto);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{background:#fff;border-bottom:3px solid var(--laranja)}
+.topo{max-width:760px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:14px}
+.topo img{height:42px;width:auto;display:block}
+.topo span{font-size:.9rem;color:var(--suave);margin-left:auto;text-align:right}
+main{max-width:760px;margin:0 auto;padding:16px 16px 96px}
+.progresso{margin:4px 0 16px}
+.progresso small{color:var(--suave)}
+.barra{height:6px;background:var(--linha);border-radius:3px;overflow:hidden;margin-top:6px}
+.barra i{display:block;height:100%;width:0;background:var(--marinho);transition:width .2s}
+section.etapa{display:none;background:var(--cartao);border:1px solid var(--linha);border-radius:10px;padding:20px 16px}
+section.etapa.ativa{display:block}
+h1{font-size:1.3rem;line-height:1.25;color:var(--marinho);margin:0 0 6px}
+.intro{color:var(--suave);margin:0 0 18px}
+.aviso{background:#fff6e7;border-left:4px solid var(--laranja);padding:10px 12px;border-radius:4px;margin:0 0 18px;font-size:.95rem}
+.campo{margin:0 0 22px}
+label,.rotulo{display:block;font-weight:600;margin-bottom:3px}
+.opcional{font-weight:400;color:var(--suave);font-size:.85rem}
+.dica{display:block;color:var(--suave);font-size:.9rem;margin-bottom:7px}
+input[type=text],select,textarea{width:100%;font:inherit;color:inherit;background:#fff;border:1px solid #b9b8b1;border-radius:6px;padding:10px 11px}
+textarea{min-height:150px;resize:vertical;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--marinho);outline-offset:0;border-color:var(--marinho)}
+.invalido input,.invalido select,.invalido textarea{border-color:var(--erro)}
+.erro{display:none;color:var(--erro);font-size:.9rem;margin-top:4px}
+.invalido .erro{display:block}
+.contador{display:block;text-align:right;color:var(--suave);font-size:.8rem;margin-top:2px}
+.opcoes label{font-weight:400;display:flex;gap:9px;align-items:flex-start;padding:9px 0}
+.opcoes input{margin-top:5px}
+.disciplina{border:1px solid var(--linha);border-radius:8px;padding:14px 12px;margin-bottom:14px}
+.disciplina .campo{margin-bottom:12px}
+.prefixo{font-size:.9rem;color:var(--marinho);font-style:italic;margin:0 0 4px}
+.remover{background:none;border:0;color:var(--erro);font:inherit;font-size:.9rem;padding:4px 0;cursor:pointer}
+.nav{display:flex;gap:10px;margin-top:6px}
+button.bt{font:inherit;font-weight:600;border-radius:7px;padding:12px 18px;cursor:pointer;border:1px solid var(--marinho)}
+.bt.prim{background:var(--marinho);color:#fff;flex:1}
+.bt.sec{background:#fff;color:var(--marinho)}
+.bt:disabled{opacity:.55;cursor:default}
+.bt.add{width:100%;margin-bottom:22px}
+.folha{border:1px solid var(--linha);padding:22px 18px;background:#fff;font-family:Arial,"Liberation Sans",sans-serif;font-size:.92rem;margin-bottom:18px;overflow-wrap:anywhere}
+.folha .c{text-align:center}
+.folha .b{font-weight:700}
+.folha .d{text-align:right;font-size:.82rem;margin:14px 0 18px}
+.folha h2{font-size:.95rem;margin:16px 0 2px}
+.folha h2.c{text-align:center}
+.folha p.t{text-indent:2em;text-align:justify;margin:0;line-height:1.6}
+.folha p.r{text-align:left;margin:0 0 10px}
+.status{margin-top:12px;font-size:.95rem}
+.status.mal{color:var(--erro)}
+.ok{text-align:center;padding:14px 4px}
+.ok h1{color:var(--verde)}
+.salvo{color:var(--suave);font-size:.82rem;text-align:center;margin-top:10px;min-height:1.2em}
+</style>
+</head>
+<body>
+<header><div class="topo"><img src="logo.png" alt="Unifacc-MT"><span>Relato Autoetnográfico</span></div></header>
+<main>
+  <div class="progresso" id="progresso"><small id="passo"></small><div class="barra"><i id="barra"></i></div></div>
+  <form id="f" novalidate autocomplete="off"></form>
+  <p class="salvo" id="salvo" aria-live="polite"></p>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // ↓↓↓ CONFIGURAR AQUI ↓↓↓  URL /exec do apps-script.gs e o mesmo TOKEN de lá
+  var ENDPOINT = "COLE_AQUI_A_URL_EXEC";
+  var TOKEN = "relato-qvJ7mX2pLc9T";
+  // ↑↑↑ CONFIGURAR AQUI ↑↑↑
+
+  var CHAVE = "relato-autoetnografico:rascunho:v1";
+  var MIN = 100, MAX = 4000, MIN_DISC = 2, MAX_DISC = 8;
+
+  var GRUPOS = [
+    {id:"AdmCBA|G2", turma:"AdmCBA", rotulo:"Administração · Cuiabá · 4º Semestre", nome:"G2 · Fila Cidadã", alunos:["Amanda Bento Brandão","Kemylly Monique da Silva Prado","Stefany Rosa Araujo Correia","Steffany Natilin Campos Mendes"]},
+    {id:"AdmCBA|G4", turma:"AdmCBA", rotulo:"Administração · Cuiabá · 4º Semestre", nome:"G4 · CRAS Online", alunos:["Anna Júlia Ferreira de Paula","Kaique Junior dos Santos","Marcelly Regina de Figueiredo","Maria Eduarda Figueiredo Campos"]},
+    {id:"3SemVG|G5", turma:"3SemVG", rotulo:"Ciências Sociais Aplicadas · Várzea Grande · 3º Semestre", nome:"G5 · Endividados Anônimos (EDA)", alunos:["Beatriz Luiza Almeida da Silva","Cássia Virgínia Aparecida da Silva Nobrega","Denner Silva Port","Sarah Caroline de Souza Santos"]},
+    {id:"3SemVG|G6", turma:"3SemVG", rotulo:"Ciências Sociais Aplicadas · Várzea Grande · 3º Semestre", nome:"G6 · Vida no Controle", alunos:["Emilly da Silva Moreira","Fernanda Gabrielly dos Santos","Hítalo Padilha de Oliveira","Rhayssa da Silva Bertazzoni","Yasmim Victoria da Silva Basto"]},
+    {id:"8AdmVG|G1", turma:"8AdmVG", rotulo:"Administração · Várzea Grande · 8º Semestre", nome:"G1 · HoraCerta", alunos:["José Arlindo da Cunha Filho","Leticia Leydiane de Oliveira","Luana da Silva Araújo","Samara de Campos Henrique","Taynara Luana de Oliveira"]},
+    {id:"8AdmVG|G2", turma:"8AdmVG", rotulo:"Administração · Várzea Grande · 8º Semestre", nome:"G2 · GuiaMobi", alunos:["Cinthia Ferreira da Silva Oliveira","Danielly Gomes de Souza Pinto","Esther Rodrigues da Conceição","Guilherme Henrique Xavier Sampaio","Leandro Teodoro de Santana"]}
+  ];
+  var TURMAS = {
+    AdmCBA:{faculdade:"FACULDADE CATÓLICA DE CUIABÁ", semestre:"4º", curso:"Bacharelado em Administração", sigla:"FACC-CBA"},
+    "3SemVG":{faculdade:"FACULDADE CATÓLICA DE MATO GROSSO", semestre:"3º", curso:"Bacharelado em Ciências Sociais Aplicadas", sigla:"FACC-MT"},
+    "8AdmVG":{faculdade:"FACULDADE CATÓLICA DE MATO GROSSO", semestre:"8º", curso:"Bacharelado em Administração", sigla:"FACC-MT"}
+  };
+
+  // req = o modelo diz "deverá"; opcional = o modelo diz "podem" ou "como exemplo"
+  var SECOES = [
+    {titulo:"1 APRESENTAÇÃO DO PROBLEMA", nomeTela:"1. Apresentação do problema",
+     intro:"Apresente o problema que orientou o trabalho do seu grupo e como vocês começaram.",
+     campos:[
+      {id:"s1_problema", req:1, r:"Qual foi o problema interdisciplinar e em que contexto ele surgiu?", d:"Explique o problema que o grupo enfrentou e o contexto em que ele foi trabalhado."},
+      {id:"s1_perguntas", req:1, r:"Quais perguntas centrais guiaram o desenvolvimento do problema?", d:"Conte quais eram as principais perguntas que vocês queriam responder."},
+      {id:"s1_chuva", req:1, r:"Como a chuva de ideias ajudou no início do percurso?", d:"O que surgiu nela e como isso ajudou o grupo a começar."},
+      {id:"s1_decisoes", req:1, r:"Quais foram as primeiras decisões do grupo?", d:"Conte como vocês dividiram as tarefas e organizaram o cronograma."},
+      {id:"s1_posicao", req:1, r:"Qual foi a sua posição inicial no grupo?", d:"Qual papel você assumiu e quais foram as suas primeiras contribuições."}
+     ]},
+    {titulo:"2 PERCURSO E MATERIAIS", nomeTela:"2. Percurso e materiais",
+     intro:"Narre o caminho percorrido no semestre, em ordem cronológica, mostrando como o trabalho evoluiu.",
+     campos:[
+      {id:"s2_etapas", req:1, r:"Como foi o percurso do grupo ao longo do semestre?", d:"Passe pelas principais etapas: apresentação inicial, tempestade de ideias, reuniões semanais, orientações com docentes, coleta de dados etc."},
+      {id:"s2_materiais", req:1, r:"Quais materiais você consultou?", d:"Liste artigos, livros, vídeos, relatórios, entrevistas e diga para que cada um serviu."},
+      {id:"s2_contribuicao", req:1, r:"Qual foi a sua contribuição em cada etapa?", d:"Detalhe o que você fez, com ênfase nos momentos de decisão coletiva e individual."},
+      {id:"s2_episodios", req:0, r:"Algum episódio marcou o desenvolvimento?", d:"Por exemplo: a descoberta de uma fonte nova, um conflito metodológico, uma mudança de estratégia, um ajuste no cronograma."}
+     ]},
+    {titulo:"3 COMPREENSÕES TEÓRICAS", nomeTela:"3. Compreensões teóricas",
+     intro:"Mostre quais ideias e teorias sustentaram o trabalho e como elas entraram no percurso.",
+     campos:[
+      {id:"s3_conceitos", req:1, r:"Quais conceitos e teorias foram usados e como entraram nas etapas do trabalho?", d:"Cite os principais e mostre em que momento cada um foi aplicado."},
+      {id:"s3_chuva", req:1, r:"Como a chuva de ideias foi aproveitada e o que orientou as decisões práticas do grupo?", d:"Fale dos recursos e das discussões que levaram às decisões."},
+      {id:"s3_confusos", req:0, r:"Algum conceito que parecia confuso passou a fazer sentido?", d:"Conte como isso aconteceu, como ele passou a estruturar a análise e quais debates o grupo teve."}
+     ]},
+    {titulo:"4 RELAÇÃO COM AS DISCIPLINAS", nomeTela:"4. Relação com as disciplinas",
+     intro:"Mostre como cada disciplina cursada no semestre contribuiu para o desenvolvimento do problema.",
+     disciplinas:true,
+     campos:[
+      {id:"s4_articulacao", req:1, r:"Como essas disciplinas se articularam no trabalho?", d:"Mostre que o problema só avançou porque os saberes das disciplinas foram combinados."}
+     ]},
+    {titulo:"5 CONSIDERAÇÕES FINAIS", nomeTela:"5. Considerações finais",
+     intro:"Feche o relato refletindo sobre o que o processo mostrou a você.",
+     campos:[
+      {id:"s5_resultados", req:1, r:"Quais resultados foram alcançados e o que o processo revelou sobre a sua participação e aprendizagem?", d:"Comece pelos resultados e depois reflita sobre você nesse processo."},
+      {id:"s5_mudancas", req:0, r:"O que mudou no seu pensamento e na sua prática?", d:"Novas habilidades, posturas modificadas, mais confiança, sempre ligando ao percurso vivido."},
+      {id:"s5_aprendizados", req:0, r:"O que você aprendeu que pode levar para a sua formação profissional?", d:"Aprendizados que você consegue aplicar em outros contextos."},
+      {id:"s5_limites", req:0, r:"Quais foram os limites do trabalho e o que ainda pode ser feito?", d:"Limites, questões não resolvidas e possíveis desenvolvimentos futuros."},
+      {id:"s5_cooperacao", req:0, r:"Qual é o valor do método cooperativo para enfrentar problemas complexos?", d:"Esta resposta fecha o seu relato. Faça uma reflexão pessoal."}
+     ]}
+  ];
+  var TODOS = []; SECOES.forEach(function(s){ s.campos.forEach(function(c){ TODOS.push(c); }); });
+
+  var f = document.getElementById("f"), atual = 0, etapas = [], estado = {};
+
+  function el(tag, attrs, filhos){
+    var n = document.createElement(tag);
+    Object.keys(attrs||{}).forEach(function(k){
+      if (k === "texto") n.textContent = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    });
+    (filhos||[]).forEach(function(c){ if (c) n.appendChild(c); });
+    return n;
+  }
+  function erroEl(){ return el("div",{"class":"erro"}); }
+  function grupoAtual(){ return GRUPOS.filter(function(g){ return g.id === estado.grupo; })[0]; }
+  function limpo(v){ return String(v==null?"":v).trim(); }
+  function msgCampo(c, m){ c.classList.toggle("invalido", !!m); c.querySelector(".erro").textContent = m||""; }
+
+  /* ---------- rascunho ---------- */
+  function carregar(){
+    var b; try { b = localStorage.getItem(CHAVE); } catch(e){}
+    if (b) { try { estado = JSON.parse(b) || {}; } catch(e){ estado = {}; } }
+    if (!Array.isArray(estado.disciplinas) || !estado.disciplinas.length) {
+      estado.disciplinas = [{nome:"",texto:""},{nome:"",texto:""}];
+    }
+  }
+  var tSalvar;
+  function salvar(){
+    clearTimeout(tSalvar);
+    tSalvar = setTimeout(function(){
+      try {
+        localStorage.setItem(CHAVE, JSON.stringify(estado));
+        document.getElementById("salvo").textContent = "Rascunho salvo neste aparelho às " +
+          new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+      } catch(e){
+        document.getElementById("salvo").textContent = "Não foi possível salvar o rascunho neste navegador. Não feche a página antes de enviar.";
+      }
+    }, 300);
+  }
+
+  /* ---------- montagem ---------- */
+  function areaTexto(id, valor, aoMudar, attrs){
+    var a = el("textarea", Object.assign({id:id, maxlength:MAX, spellcheck:"true", lang:"pt-BR"}, attrs||{}));
+    a.value = valor || "";
+    var cont = el("span",{"class":"contador"});
+    function conta(){ cont.textContent = a.value.length + " / " + MAX; }
+    a.addEventListener("input", function(){ conta(); aoMudar(a.value); salvar(); });
+    conta();
+    return {a:a, cont:cont};
+  }
+  function campoTexto(c){
+    var t = areaTexto(c.id, estado[c.id], function(v){ estado[c.id] = v; });
+    var wrap = el("div",{"class":"campo","data-campo":c.id},[
+      el("label",{"for":c.id,texto:c.r}),
+      c.req ? null : el("span",{"class":"opcional",texto:"Opcional"}),
+      el("span",{"class":"dica",texto:c.d}), t.a, t.cont, erroEl()
+    ]);
+    return wrap;
+  }
+  function etapa(filhos){
+    var s = el("section",{"class":"etapa"}, filhos);
+    f.appendChild(s); etapas.push(s); return s;
+  }
+  function navegacao(i, ult){
+    var ant = i>0 ? el("button",{type:"button","class":"bt sec",texto:"Voltar"}) : null;
+    var prox = el("button",{type:"button","class":"bt prim",texto: ult ? "Enviar meu relato" : "Continuar"});
+    if (ant) ant.addEventListener("click", function(){ ir(i-1); });
+    prox.addEventListener("click", function(){ if (ult) enviar(prox); else if (valida(i)) ir(i+1); });
+    if (ult) prox.id = "btEnviar";
+    return el("div",{"class":"nav"},[ant,prox]);
+  }
+
+  function montarIdent(){
+    var sGrupo = el("select",{id:"grupo"},[el("option",{value:"",texto:"Selecione"})]);
+    var rotulos = {};
+    GRUPOS.forEach(function(g){
+      if (!rotulos[g.rotulo]) { rotulos[g.rotulo] = el("optgroup",{label:g.rotulo}); sGrupo.appendChild(rotulos[g.rotulo]); }
+      rotulos[g.rotulo].appendChild(el("option",{value:g.id,texto:g.nome}));
+    });
+    var sNome = el("select",{id:"nome"});
+    function preencheNomes(){
+      var g = grupoAtual();
+      sNome.textContent = "";
+      sNome.appendChild(el("option",{value:"",texto: g ? "Selecione" : "Escolha o grupo primeiro"}));
+      sNome.disabled = !g;
+      if (g) g.alunos.forEach(function(a){ sNome.appendChild(el("option",{value:a,texto:a})); });
+      sNome.value = (g && g.alunos.indexOf(estado.nome) >= 0) ? estado.nome : "";
+      if (!sNome.value) estado.nome = "";
+    }
+    sGrupo.value = estado.grupo || "";
+    sGrupo.addEventListener("change", function(){ estado.grupo = sGrupo.value; preencheNomes(); salvar(); });
+    sNome.addEventListener("change", function(){ estado.nome = sNome.value; salvar(); });
+    preencheNomes();
+
+    function txt(id, ph){
+      var i = el("input",{type:"text",id:id,maxlength:"160",placeholder:ph});
+      i.value = estado[id] || "";
+      i.addEventListener("input", function(){ estado[id] = i.value; salvar(); });
+      return i;
+    }
+    etapa([
+      el("h1",{texto:"Seu relato autoetnográfico"}),
+      el("p",{"class":"intro",texto:"Responda às perguntas e o seu relato será montado automaticamente no modelo oficial."}),
+      el("div",{"class":"aviso"},[
+        el("strong",{texto:"O que você escrever vai exatamente assim para o documento. "}),
+        document.createTextNode("Escreva em primeira pessoa (“eu percebi”, “decidimos”), com frases completas e sem abreviações. Se quiser dois parágrafos em uma resposta, pule uma linha. Suas respostas ficam salvas neste aparelho enquanto você escreve.")
+      ]),
+      el("div",{"class":"campo","data-campo":"grupo"},[el("label",{"for":"grupo",texto:"Seu grupo"}), sGrupo, erroEl()]),
+      el("div",{"class":"campo","data-campo":"nome"},[el("label",{"for":"nome",texto:"Seu nome"}), sNome, erroEl()]),
+      el("div",{"class":"campo","data-campo":"titulo"},[
+        el("label",{"for":"titulo",texto:"Título do relato"}), el("span",{"class":"opcional",texto:"Opcional"}),
+        txt("titulo","Ex.: Do problema à solução"), erroEl()
+      ]),
+      el("div",{"class":"campo","data-campo":"subtitulo"},[
+        el("label",{"for":"subtitulo",texto:"Subtítulo"}), el("span",{"class":"opcional",texto:"Opcional"}),
+        txt("subtitulo","Ex.: minha experiência no grupo"), erroEl()
+      ]),
+      navegacao(0)
+    ]);
+  }
+
+  function montarDisciplinas(caixa){
+    caixa.textContent = "";
+    estado.disciplinas.forEach(function(d, i){
+      var nome = el("input",{type:"text",id:"disc_nome_"+i,maxlength:"120",placeholder:"Nome da disciplina"});
+      nome.value = d.nome || "";
+      var pref = el("p",{"class":"prefixo"});
+      function atualiza(){ pref.textContent = "Na disciplina de " + (limpo(d.nome) || "…") + ", (continue a frase)"; }
+      nome.addEventListener("input", function(){ d.nome = nome.value; atualiza(); salvar(); });
+      atualiza();
+      var t = areaTexto("disc_texto_"+i, d.texto, function(v){ d.texto = v; }, {autocapitalize:"none", placeholder:"aprendi… / utilizei… / o conceito de…"});
+      var anterior = t.a.value.length;
+      t.a.addEventListener("input", function(){
+        // começa em minúscula porque continua a frase; o aluno ainda pode corrigir nomes próprios depois
+        if (anterior === 0 && t.a.value.length === 1) { t.a.value = t.a.value.toLowerCase(); d.texto = t.a.value; }
+        anterior = t.a.value.length;
+      });
+      var bloco = el("div",{"class":"disciplina"},[
+        el("div",{"class":"campo","data-campo":"disc_nome_"+i},[el("label",{"for":"disc_nome_"+i,texto:"Disciplina "+(i+1)}), nome, erroEl()]),
+        el("div",{"class":"campo","data-campo":"disc_texto_"+i},[
+          el("label",{"for":"disc_texto_"+i,texto:"Como ela contribuiu?"}),
+          el("span",{"class":"dica",texto:"Conceitos, métodos e abordagens que ajudaram no problema e, se quiser, as competências desenvolvidas."}),
+          pref, t.a, t.cont, erroEl()
+        ])
+      ]);
+      if (estado.disciplinas.length > MIN_DISC) {
+        var rem = el("button",{type:"button","class":"remover",texto:"Remover esta disciplina"});
+        rem.addEventListener("click", function(){ estado.disciplinas.splice(i,1); montarDisciplinas(caixa); salvar(); });
+        bloco.appendChild(rem);
+      }
+      caixa.appendChild(bloco);
+    });
+    var add = el("button",{type:"button","class":"bt sec add",texto:"Adicionar outra disciplina"});
+    add.disabled = estado.disciplinas.length >= MAX_DISC;
+    add.addEventListener("click", function(){ estado.disciplinas.push({nome:"",texto:""}); montarDisciplinas(caixa); salvar(); });
+    caixa.appendChild(add);
+  }
+
+  function montarSecoes(){
+    SECOES.forEach(function(s){
+      var i = etapas.length, filhos = [el("h1",{texto:s.nomeTela}), el("p",{"class":"intro",texto:s.intro})];
+      if (s.disciplinas) { var caixa = el("div",{id:"disciplinas"}); filhos.push(caixa); montarDisciplinas(caixa); }
+      s.campos.forEach(function(c){ filhos.push(campoTexto(c)); });
+      filhos.push(navegacao(i));
+      etapa(filhos);
+    });
+  }
+
+  function montarRefs(){
+    var i = etapas.length;
+    function radio(v, t){
+      var r = el("input",{type:"radio",name:"temRefs",value:v});
+      if (estado.temRefs === v) r.checked = true;
+      r.addEventListener("change", function(){ estado.temRefs = v; mostra(); salvar(); });
+      return el("label",{},[r, document.createTextNode(t)]);
+    }
+    var t = areaTexto("referencias", estado.referencias, function(v){ estado.referencias = v; }, {placeholder:"SOBRENOME, Nome. *Título da obra*. Cidade: Editora, ano."});
+    var bloco = el("div",{"class":"campo","data-campo":"referencias"},[
+      el("label",{"for":"referencias",texto:"Suas referências, uma por linha"}),
+      el("span",{"class":"dica",texto:"Siga a NBR 6023. Coloque o título da obra entre asteriscos para sair em negrito: *Título da obra*."}),
+      t.a, t.cont, erroEl()
+    ]);
+    function mostra(){ bloco.style.display = estado.temRefs === "sim" ? "" : "none"; }
+    mostra();
+    etapa([
+      el("h1",{texto:"Referências"}),
+      el("p",{"class":"intro",texto:"Só entram no relato as obras citadas no seu texto (NBR 6023 e 10520). Sem citação, a seção não aparece."}),
+      el("div",{"class":"campo","data-campo":"temRefs"},[
+        el("span",{"class":"rotulo",texto:"Você citou algum autor ou obra no seu texto?"}),
+        el("div",{"class":"opcoes"},[radio("sim","Sim, citei"),radio("nao","Não citei")]), erroEl()
+      ]),
+      bloco, navegacao(i)
+    ]);
+  }
+
+  function montarRevisao(){
+    var i = etapas.length;
+    etapa([
+      el("h1",{texto:"Confira como ficou"}),
+      el("p",{"class":"intro",texto:"Este é o texto que irá para o documento. Para corrigir, use “Voltar”. Se enviar de novo depois, a nova versão substitui a anterior."}),
+      el("div",{"class":"folha",id:"folha"}),
+      navegacao(i,true),
+      el("p",{"class":"status",id:"status",role:"status"})
+    ]);
+    etapa([el("div",{"class":"ok"},[
+      el("h1",{texto:"Relato enviado"}),
+      el("p",{id:"okMsg"}),
+      el("button",{type:"button","class":"bt sec",id:"btEditar",texto:"Voltar e editar"})
+    ])]);
+    document.getElementById("btEditar").addEventListener("click", function(){ ir(etapas.length-2); });
+  }
+
+  /* ---------- texto final (mesma ordem do gerar.py) ---------- */
+  function paragrafos(t){
+    return String(t||"").split(/\n+/).map(function(p){ return p.replace(/[ \t]+/g," ").trim(); }).filter(Boolean);
+  }
+  function compoeSecao(s){
+    var ps = [];
+    if (s.disciplinas) {
+      estado.disciplinas.forEach(function(d){
+        var q = paragrafos(d.texto); if (!q.length) return;
+        q[0] = "Na disciplina de " + limpo(d.nome) + ", " + q[0];
+        ps = ps.concat(q);
+      });
+    }
+    s.campos.forEach(function(c){ ps = ps.concat(paragrafos(estado[c.id])); });
+    return ps;
+  }
+  function textoCorpo(){ return SECOES.map(function(s){ return compoeSecao(s).join("\n"); }).join("\n"); }
+  function temCitacao(t){
+    return /\([A-ZÀ-Ú][A-ZÀ-Ú'-]+(?:[^()]{0,60})?,\s*\d{4}/.test(t) || /[A-ZÀ-Ú][a-zà-ú]+(?: et al\.)?\s*\(\d{4}/.test(t);
+  }
+
+  function preencheFolha(){
+    var g = grupoAtual(), T = TURMAS[g.turma], fo = document.getElementById("folha");
+    fo.textContent = "";
+    fo.appendChild(el("div",{"class":"c b",texto:T.faculdade}));
+    fo.appendChild(el("div",{"class":"c b",texto:"RELATO AUTOETNOGRÁFICO"}));
+    if (limpo(estado.titulo)) {
+      var lin = el("div",{"class":"c",style:"margin-top:14px"},[el("span",{"class":"b",texto:limpo(estado.titulo).toUpperCase() + (limpo(estado.subtitulo) ? ": " : "")})]);
+      if (limpo(estado.subtitulo)) lin.appendChild(document.createTextNode(limpo(estado.subtitulo)));
+      fo.appendChild(lin);
+    }
+    fo.appendChild(el("div",{"class":"d",texto:estado.nome + ". Estudante do " + T.semestre + " Semestre do Curso de " + T.curso + " da " + T.sigla + "."}));
+    SECOES.forEach(function(s){
+      fo.appendChild(el("h2",{texto:s.titulo}));
+      compoeSecao(s).forEach(function(p){ fo.appendChild(el("p",{"class":"t",texto:p})); });
+    });
+    if (estado.temRefs === "sim") {
+      fo.appendChild(el("h2",{"class":"c",texto:"REFERÊNCIAS"}));
+      paragrafos(estado.referencias).forEach(function(r){
+        var p = el("p",{"class":"r"});
+        r.split(/(\*[^*]+\*)/).forEach(function(x){
+          if (/^\*[^*]+\*$/.test(x)) p.appendChild(el("strong",{texto:x.slice(1,-1)}));
+          else if (x) p.appendChild(document.createTextNode(x));
+        });
+        fo.appendChild(p);
+      });
+    }
+  }
+
+  /* ---------- validação ---------- */
+  function validaTexto(c){
+    var w = f.querySelector('[data-campo="'+c.id+'"]'), v = limpo(estado[c.id]), m = "";
+    if (c.req && !v) m = "Responda a esta pergunta.";
+    else if (c.req && v.length < MIN) m = "Escreva um pouco mais (mínimo de " + MIN + " caracteres; agora são " + v.length + ").";
+    msgCampo(w, m); return !m;
+  }
+  function validaEtapa(i){
+    var ok = true;
+    function marca(id, m){ var w = f.querySelector('[data-campo="'+id+'"]'); msgCampo(w, m); if (m) ok = false; }
+    if (i === 0) {
+      marca("grupo", estado.grupo ? "" : "Selecione o seu grupo.");
+      marca("nome", estado.nome ? "" : "Selecione o seu nome.");
+      marca("subtitulo", (limpo(estado.subtitulo) && !limpo(estado.titulo)) ? "Para usar subtítulo, preencha também o título." : "");
+    } else if (i <= SECOES.length) {
+      var s = SECOES[i-1];
+      if (s.disciplinas) {
+        var nomes = {};
+        estado.disciplinas.forEach(function(d, k){
+          var n = limpo(d.nome), chave = n.toLowerCase(), v = limpo(d.texto);
+          marca("disc_nome_"+k, !n ? "Informe o nome da disciplina." : nomes[chave] ? "Esta disciplina já foi informada." : "");
+          nomes[chave] = 1;
+          marca("disc_texto_"+k, !v ? "Conte como esta disciplina contribuiu." : v.length < MIN ? "Escreva um pouco mais (mínimo de "+MIN+" caracteres; agora são "+v.length+")." : "");
+        });
+      }
+      s.campos.forEach(function(c){ if (!validaTexto(c)) ok = false; });
+    } else if (i === SECOES.length+1) {
+      var cita = temCitacao(textoCorpo());
+      marca("temRefs", !estado.temRefs ? "Selecione uma opção." :
+        (estado.temRefs === "nao" && cita) ? "Encontramos citações no seu texto (ex.: (SILVA, 2020)). Marque “Sim” e informe as referências." : "");
+      marca("referencias", (estado.temRefs === "sim" && !limpo(estado.referencias)) ? "Informe pelo menos uma referência." : "");
+    }
+    return ok;
+  }
+  function valida(i){
+    var ok = validaEtapa(i);
+    if (!ok) {
+      var p = etapas[i].querySelector(".invalido");
+      if (p) { p.scrollIntoView({behavior:"smooth",block:"center"}); var q = p.querySelector("input,select,textarea"); if (q) q.focus({preventScroll:true}); }
+    }
+    return ok;
+  }
+
+  function ir(i){
+    etapas.forEach(function(s,k){ s.classList.toggle("ativa", k===i); });
+    atual = i;
+    var total = etapas.length-1, fim = i === total;
+    document.getElementById("progresso").style.display = fim ? "none" : "";
+    document.getElementById("passo").textContent = "Etapa " + (i+1) + " de " + total;
+    document.getElementById("barra").style.width = ((i+1)/total*100) + "%";
+    if (i === total-1) preencheFolha();
+    window.scrollTo(0,0);
+  }
+
+  /* ---------- envio ---------- */
+  function montaPayload(){
+    var g = grupoAtual(), d = {turma:g.turma, grupo:g.nome, nome:estado.nome, titulo:limpo(estado.titulo), subtitulo:limpo(estado.subtitulo)};
+    TODOS.forEach(function(c){ d[c.id] = limpo(estado[c.id]); });
+    d.disciplinas = estado.disciplinas.map(function(x){ return "### " + limpo(x.nome) + "\n" + limpo(x.texto); }).join("\n\n");
+    d.temRefs = estado.temRefs;
+    d.referencias = estado.temRefs === "sim" ? limpo(estado.referencias) : "";
+    return d;
+  }
+  async function enviar(bt){
+    var st = document.getElementById("status");
+    for (var i = 0; i <= SECOES.length+1; i++) {
+      if (!validaEtapa(i)) { ir(i); valida(i); return; }
+    }
+    if (ENDPOINT.indexOf("http") !== 0) {
+      st.className = "status mal"; st.textContent = "O formulário ainda não está conectado à planilha. Avise o professor.";
+      return;
+    }
+    bt.disabled = true; st.className = "status"; st.textContent = "Enviando…";
+    try {
+      var resp = await fetch(ENDPOINT, {
+        method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, redirect:"follow",
+        body: JSON.stringify({token:TOKEN, payload:montaPayload()})
+      });
+      var r = JSON.parse(await resp.text());
+      if (!r.ok) throw new Error(r.erro || "falha");
+      document.getElementById("okMsg").textContent = estado.nome + ", seu relato foi " +
+        (r.acao === "atualizado" ? "atualizado" : "recebido") + " em " + new Date().toLocaleString("pt-BR") +
+        ". Se precisar corrigir algo, edite e envie de novo: a versão mais recente é a que vale.";
+      st.textContent = "";
+      ir(etapas.length-1);
+    } catch(e) {
+      st.className = "status mal";
+      st.textContent = "Não foi possível enviar agora (" + (e && e.message ? e.message : "erro de conexão") + "). Suas respostas continuam salvas; tente de novo.";
+    } finally { bt.disabled = false; }
+  }
+
+  function limpaErro(e){
+    var c = e.target.closest && e.target.closest("[data-campo]");
+    if (c) msgCampo(c, "");
+  }
+  f.addEventListener("input", limpaErro);
+  f.addEventListener("change", limpaErro);
+
+  carregar();
+  montarIdent(); montarSecoes(); montarRefs(); montarRevisao();
+  ir(0);
+})();
+</script>
+</body>
+</html>
